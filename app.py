@@ -3,8 +3,8 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-VERSION = "v12"
-st.set_page_config(page_title="WLF Options Profit Calculator", page_icon="馃搱", layout="wide")
+VERSION = "v13"
+st.set_page_config(page_title="WLF Options Profit Calculator", page_icon="WLF", layout="wide")
 
 ASSET_DIR = Path(__file__).parent / "assets"
 
@@ -30,31 +30,31 @@ BROKERS = {
 TEXT = {
     "ES": {
         "title": "Calculadora de Ganancia en Opciones",
-        "subtitle": "Calcula el precio l铆mite para cerrar una operaci贸n con ganancia - <span>SELL TO CLOSE</span>",
+        "subtitle": "Calcula el precio límite para cerrar una operación con ganancia - <span>SELL TO CLOSE</span>",
         "broker": "Broker",
         "contracts": "Contratos",
         "premium": "Prima de entrada ($)",
         "target": "Objetivo (%)",
         "include_fees": "Incluir comisiones",
         "round": "Redondear a $0.01",
-        "fee": "Comisi贸n",
+        "fee": "Comision",
         "per_side": "/ lado",
-        "custom_fee": "Comisi贸n por lado ($)",
-        "result_title": "PRECIO L脥MITE SELL TO CLOSE",
-        "result_help": "Este es el precio de prima que escribes en el broker.",
+        "custom_fee": "Comisión por lado ($)",
+        "result_title": "PRECIO LIMITE SELL TO CLOSE",
+        "result_help": "Precio premium para pegar en el broker.",
         "copy_title": "Copiar precio al broker",
         "copy_button": "Copiar",
-        "copy_hint": "Si el bot贸n no copia, selecciona el n煤mero y usa Ctrl+C.",
+        "copy_hint": "Si el botón no copia, selecciona el número y usa Ctrl+C.",
         "copied": "Copiado",
         "entry_cost": "Costo de entrada",
         "fees_total": "Comisiones totales",
         "gross": "Objetivo bruto",
         "net": "Objetivo neto",
-        "formula": "F贸rmula",
-        "base": "Base = prima 脳 (1 + objetivo / 100)",
-        "fee_adj": "Ajuste comisi贸n = comisi贸n ida y vuelta / 100",
-        "exit": "L铆mite de salida = Base + Ajuste comisi贸n",
-        "calc": "C谩lculo actual",
+        "formula": "Formula",
+        "base": "Base = prima x (1 + objetivo / 100)",
+        "fee_adj": "Ajuste comision = comision ida y vuelta / 100",
+        "exit": "Limite de salida = Base + Ajuste comision",
+        "calc": "Calculo actual",
     },
     "EN": {
         "title": "Options Profit Calculator",
@@ -79,7 +79,7 @@ TEXT = {
         "gross": "Gross target",
         "net": "Net target",
         "formula": "Formula",
-        "base": "Base = premium 脳 (1 + target / 100)",
+        "base": "Base = premium × (1 + target / 100)",
         "fee_adj": "Fee adjustment = round-trip fee / 100",
         "exit": "Exit limit = Base + Fee adjustment",
         "calc": "Current calculation",
@@ -90,7 +90,7 @@ st.markdown(
     """
 <style>
 [data-testid="stHeader"] {background: rgba(6, 10, 22, 0.86);} 
-.block-container {padding-top: 1.0rem; max-width: 1180px;}
+.block-container {padding-top: 1.8rem; max-width: 1180px;}
 html, body, [class*="css"] {font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;}
 .stApp {background: radial-gradient(circle at top, #0a2324 0, #071223 34%, #050914 100%); color: #f8fbff;}
 .logo-wrap {text-align:center; margin-top: 0.1rem; margin-bottom: .3rem;}
@@ -98,7 +98,7 @@ html, body, [class*="css"] {font-family: Inter, ui-sans-serif, system-ui, -apple
 .main-title {font-size: 3.0rem; font-weight: 900; text-align:center; margin: .15rem 0 .25rem; letter-spacing:-1.5px;}
 .subtitle {text-align:center; color:#d5dfef; font-size: 1.08rem; margin-bottom: 1rem;}
 .subtitle span {color:#74ff66; font-weight:800;}
-.small-select {max-width: 130px; margin-left:auto;}
+.lang-select-wrap {max-width: 105px; margin-left:auto; margin-bottom:.35rem;}
 .broker-row {display:flex; gap:.7rem; flex-wrap:wrap; margin:.35rem 0 .65rem;}
 .broker-chip {border:1px solid #34415b; border-radius:14px; padding:.55rem .85rem; font-weight:900; color:#ffffff; background:#101827; display:flex; gap:.5rem; align-items:center;}
 .broker-chip.active {border-color:#72ff66; box-shadow:0 0 0 1px #72ff66 inset; color:#72ff66;}
@@ -131,6 +131,16 @@ if "broker" not in st.session_state:
 if "lang" not in st.session_state:
     st.session_state.lang = "ES"
 
+# Language selector: top-right inside the app content, visible but not stuck to the browser toolbar
+top_left, top_right = st.columns([8, 1.25])
+with top_right:
+    st.markdown('<div class="lang-select-wrap">', unsafe_allow_html=True)
+    lang_label = st.selectbox("", ["ES", "EN"], index=0 if st.session_state.lang == "ES" else 1, key="lang_select", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+if lang_label != st.session_state.lang:
+    st.session_state.lang = lang_label
+    st.rerun()
+
 # Initial language setup
 t = TEXT[st.session_state.lang]
 
@@ -139,15 +149,6 @@ if logo:
     st.markdown(f'<div class="logo-wrap"><img src="data:image/png;base64,{logo}" /></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="main-title">{t["title"]}</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="subtitle">{t["subtitle"]}</div>', unsafe_allow_html=True)
-
-# Compact language selector placed under the title, not stuck at the very top
-lang_left, lang_mid, lang_right = st.columns([5, 1.05, 5])
-with lang_mid:
-    lang_label = st.selectbox("", ["ES", "EN"], index=0 if st.session_state.lang == "ES" else 1, key="lang_select", label_visibility="collapsed")
-if lang_label != st.session_state.lang:
-    st.session_state.lang = lang_label
-    st.rerun()
-t = TEXT[st.session_state.lang]
 
 left, right = st.columns([1.38, 1.0], gap="large")
 
@@ -164,7 +165,7 @@ with left:
 
     broker = st.session_state.broker
     broker_logo = img_b64(LOGOS.get(broker, "")) if LOGOS.get(broker) else ""
-    img_html = f'<img src="data:image/png;base64,{broker_logo}" />' if broker_logo else '<div style="width:42px;height:42px;border-radius:8px;border:1px solid #445;display:flex;align-items:center;justify-content:center;color:#fff;">馃懁</div>'
+    img_html = f'<img src="data:image/png;base64,{broker_logo}" />' if broker_logo else '<div style="width:42px;height:42px;border-radius:8px;border:1px solid #445;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;">C</div>'
     fee_default = BROKERS.get(broker, 0.65)
     st.markdown(
         f"""
@@ -217,7 +218,7 @@ with right:
         <div style="font-family:Inter,Arial,sans-serif;box-sizing:border-box;">
           <div style="border:1px solid #58e85b;border-radius:26px;padding:24px 28px;
                       background:linear-gradient(135deg, rgba(14,50,50,.78), rgba(7,14,30,.94));
-                      min-height:220px;box-shadow:0 0 26px rgba(64,255,70,.12);color:#f8fbff;">
+                      min-height:235px;box-shadow:0 0 26px rgba(64,255,70,.12);color:#f8fbff;">
             <div style="font-size:18px;color:#c4d1dc;font-weight:900;letter-spacing:.3px;">
               {t['result_title']}
             </div>
@@ -227,7 +228,7 @@ with right:
               </div>
               <button onclick="copyPrice()" title="{t['copy_button']}"
                 style="cursor:pointer;border:1px solid #63ff62;background:rgba(33,95,42,.55);
-                       color:#7fff6c;border-radius:14px;padding:10px 14px;font-size:16px;font-weight:900;
+                       color:#7fff6c;border-radius:14px;padding:9px 14px;font-size:15px;font-weight:900;
                        box-shadow:0 0 12px rgba(99,255,98,.18);">
                 {t['copy_button']}
               </button>
@@ -268,7 +269,7 @@ with right:
         }}
         </script>
         """,
-        height=270,
+        height=330,
     )
 
 m1, m2, m3, m4 = st.columns(4)
