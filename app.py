@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-VERSION = "v11"
+VERSION = "v12"
 st.set_page_config(page_title="WLF Options Profit Calculator", page_icon="馃搱", layout="wide")
 
 ASSET_DIR = Path(__file__).parent / "assets"
@@ -30,7 +30,7 @@ BROKERS = {
 TEXT = {
     "ES": {
         "title": "Calculadora de Ganancia en Opciones",
-        "subtitle": "Calcula el precio l铆mite para cerrar una operaci贸n con ganancia 路 <span>SELL TO CLOSE</span>",
+        "subtitle": "Calcula el precio l铆mite para cerrar una operaci贸n con ganancia - <span>SELL TO CLOSE</span>",
         "broker": "Broker",
         "contracts": "Contratos",
         "premium": "Prima de entrada ($)",
@@ -43,7 +43,7 @@ TEXT = {
         "result_title": "PRECIO L脥MITE SELL TO CLOSE",
         "result_help": "Este es el precio de prima que escribes en el broker.",
         "copy_title": "Copiar precio al broker",
-        "copy_button": "馃搵 Copiar precio",
+        "copy_button": "Copiar",
         "copy_hint": "Si el bot贸n no copia, selecciona el n煤mero y usa Ctrl+C.",
         "copied": "Copiado",
         "entry_cost": "Costo de entrada",
@@ -58,7 +58,7 @@ TEXT = {
     },
     "EN": {
         "title": "Options Profit Calculator",
-        "subtitle": "Calculate the limit price to close an options trade in profit 路 <span>SELL TO CLOSE</span>",
+        "subtitle": "Calculate the limit price to close an options trade in profit - <span>SELL TO CLOSE</span>",
         "broker": "Broker",
         "contracts": "Contracts",
         "premium": "Entry premium ($)",
@@ -71,7 +71,7 @@ TEXT = {
         "result_title": "SELL TO CLOSE LIMIT PRICE",
         "result_help": "This is the option premium price you type into your broker.",
         "copy_title": "Copy price to broker",
-        "copy_button": "馃搵 Copy price",
+        "copy_button": "Copy",
         "copy_hint": "If the button does not copy, select the number and press Ctrl+C.",
         "copied": "Copied",
         "entry_cost": "Entry cost",
@@ -90,7 +90,7 @@ st.markdown(
     """
 <style>
 [data-testid="stHeader"] {background: rgba(6, 10, 22, 0.86);} 
-.block-container {padding-top: 1.1rem; max-width: 1180px;}
+.block-container {padding-top: 1.0rem; max-width: 1180px;}
 html, body, [class*="css"] {font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;}
 .stApp {background: radial-gradient(circle at top, #0a2324 0, #071223 34%, #050914 100%); color: #f8fbff;}
 .logo-wrap {text-align:center; margin-top: 0.1rem; margin-bottom: .3rem;}
@@ -131,11 +131,7 @@ if "broker" not in st.session_state:
 if "lang" not in st.session_state:
     st.session_state.lang = "ES"
 
-# Compact language selector top-right
-_, lang_col = st.columns([8, 1.4])
-with lang_col:
-    lang_label = st.selectbox("", ["ES", "EN"], index=0 if st.session_state.lang == "ES" else 1, key="lang_select", label_visibility="collapsed")
-st.session_state.lang = lang_label
+# Initial language setup
 t = TEXT[st.session_state.lang]
 
 logo = img_b64("wlf_trading_cropped.png") or img_b64("wlf_trading.png")
@@ -143,6 +139,15 @@ if logo:
     st.markdown(f'<div class="logo-wrap"><img src="data:image/png;base64,{logo}" /></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="main-title">{t["title"]}</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="subtitle">{t["subtitle"]}</div>', unsafe_allow_html=True)
+
+# Compact language selector placed under the title, not stuck at the very top
+lang_left, lang_mid, lang_right = st.columns([5, 1.05, 5])
+with lang_mid:
+    lang_label = st.selectbox("", ["ES", "EN"], index=0 if st.session_state.lang == "ES" else 1, key="lang_select", label_visibility="collapsed")
+if lang_label != st.session_state.lang:
+    st.session_state.lang = lang_label
+    st.rerun()
+t = TEXT[st.session_state.lang]
 
 left, right = st.columns([1.38, 1.0], gap="large")
 
@@ -152,7 +157,7 @@ with left:
     for i, b in enumerate(LOGOS.keys()):
         with broker_cols[i]:
             active = st.session_state.broker == b
-            label = ("鈼?" if active else "鈼?") + b
+            label = b
             if st.button(label, key=f"broker_{b}", use_container_width=True):
                 st.session_state.broker = b
                 st.rerun()
@@ -222,9 +227,9 @@ with right:
               </div>
               <button onclick="copyPrice()" title="{t['copy_button']}"
                 style="cursor:pointer;border:1px solid #63ff62;background:rgba(33,95,42,.55);
-                       color:#7fff6c;border-radius:14px;padding:10px 14px;font-size:17px;font-weight:900;
+                       color:#7fff6c;border-radius:14px;padding:10px 14px;font-size:16px;font-weight:900;
                        box-shadow:0 0 12px rgba(99,255,98,.18);">
-                馃搵 {t['copy_button'].replace('馃搵 ', '')}
+                {t['copy_button']}
               </button>
             </div>
             <div style="font-size:17px;color:#d9e6ea;max-width:420px;line-height:1.55;">
@@ -239,7 +244,7 @@ with right:
           const msg = document.getElementById('copyMsg');
           if (navigator.clipboard && window.isSecureContext) {{
             navigator.clipboard.writeText(val).then(function() {{
-              msg.innerText = '鉁?{t['copied']}: ' + val;
+              msg.innerText = '{t['copied']}: ' + val;
             }}).catch(function() {{
               fallbackCopy(val, msg);
             }});
@@ -255,7 +260,7 @@ with right:
           temp.select();
           try {{
             document.execCommand('copy');
-            msg.innerText = '鉁?{t['copied']}: ' + val;
+            msg.innerText = '{t['copied']}: ' + val;
           }} catch(e) {{
             msg.innerText = 'Selecciona el precio y usa Ctrl+C';
           }}
@@ -263,7 +268,7 @@ with right:
         }}
         </script>
         """,
-        height=255,
+        height=270,
     )
 
 m1, m2, m3, m4 = st.columns(4)
@@ -281,7 +286,7 @@ formula_text = (
     f"{t['base']}\n"
     f"{t['fee_adj']}\n"
     f"{t['exit']}\n\n"
-    f"{t['calc']}: {premium:.2f} 脳 (1 + {target_pct:.2f}/100) + {fee_adjustment:.4f} = {limit_price_raw:.4f}"
+    f"{t['calc']}: {premium:.2f} x (1 + {target_pct:.2f}/100) + {fee_adjustment:.4f} = {limit_price_raw:.4f}"
 )
 st.markdown(f'<div class="formula-card"><pre><b style="color:#6fff68">{t["formula"]}</b>\n{formula_text}</pre></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="footer">漏 WLF Trading 路 {VERSION}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="footer">&copy; WLF Trading - {VERSION}</div>', unsafe_allow_html=True)
