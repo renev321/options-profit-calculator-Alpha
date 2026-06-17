@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-VERSION = "v14"
+VERSION = "v13"
 st.set_page_config(page_title="WLF Options Profit Calculator", page_icon="WLF", layout="wide")
 
 ASSET_DIR = Path(__file__).parent / "assets"
@@ -90,15 +90,15 @@ st.markdown(
     """
 <style>
 [data-testid="stHeader"] {background: rgba(6, 10, 22, 0.86);} 
-.block-container {padding-top: .75rem; max-width: 1180px;}
+.block-container {padding-top: 1.8rem; max-width: 1180px;}
 html, body, [class*="css"] {font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;}
 .stApp {background: radial-gradient(circle at top, #0a2324 0, #071223 34%, #050914 100%); color: #f8fbff;}
-.logo-wrap {text-align:center; margin-top: .15rem; margin-bottom: .45rem;}
-.logo-wrap img {height: 58px; object-fit: contain;}
-.main-title {font-size: 3.0rem; font-weight: 900; text-align:center; margin: .05rem 0 .25rem; letter-spacing:-1.5px;}
+.logo-wrap {text-align:center; margin-top: 0.1rem; margin-bottom: .3rem;}
+.logo-wrap img {height: 38px; object-fit: contain;}
+.main-title {font-size: 3.0rem; font-weight: 900; text-align:center; margin: .15rem 0 .25rem; letter-spacing:-1.5px;}
 .subtitle {text-align:center; color:#d5dfef; font-size: 1.08rem; margin-bottom: 1rem;}
 .subtitle span {color:#74ff66; font-weight:800;}
-.lang-select-wrap {max-width: 92px; margin-left:auto; margin-top:.15rem; margin-bottom:.25rem;}
+.lang-select-wrap {max-width: 105px; margin-left:auto; margin-bottom:.35rem;}
 .broker-row {display:flex; gap:.7rem; flex-wrap:wrap; margin:.35rem 0 .65rem;}
 .broker-chip {border:1px solid #34415b; border-radius:14px; padding:.55rem .85rem; font-weight:900; color:#ffffff; background:#101827; display:flex; gap:.5rem; align-items:center;}
 .broker-chip.active {border-color:#72ff66; box-shadow:0 0 0 1px #72ff66 inset; color:#72ff66;}
@@ -115,7 +115,7 @@ html, body, [class*="css"] {font-family: Inter, ui-sans-serif, system-ui, -apple
 .metric-card {border:1px solid #29344a; border-radius:16px; padding:1rem 1.1rem; background:rgba(6,10,25,.52); min-height:95px;}
 .metric-label {color:#b7c6d7; font-size:.9rem; margin-bottom:.35rem;}
 .metric-value {font-size:1.45rem; font-weight:950; color:#fff;}
-.formula-card {border:1px solid #26344a; border-radius:18px; padding:1.05rem 1.2rem; background:#070b19; margin-top:.75rem;}
+.formula-card {border:1px solid #26344a; border-radius:18px; padding:1.05rem 1.2rem; background:#070b19; margin-top:.4rem;}
 .formula-card pre {white-space:pre-wrap; color:#f5f7ff; font-size:.92rem; line-height:1.8; margin:0;}
 .footer {text-align:center; color:#9badc3; margin:1.1rem 0 .2rem; font-size:.85rem;}
 button[kind="secondary"] {font-weight:900 !important;}
@@ -215,10 +215,10 @@ with right:
     # One compact custom result card. The copy control lives inside the card, not below it.
     components.html(
         f"""
-        <div style="font-family:Inter,Arial,sans-serif;box-sizing:border-box;padding-bottom:10px;">
+        <div style="font-family:Inter,Arial,sans-serif;box-sizing:border-box;">
           <div style="border:1px solid #58e85b;border-radius:26px;padding:24px 28px;
                       background:linear-gradient(135deg, rgba(14,50,50,.78), rgba(7,14,30,.94));
-                      min-height:250px;box-shadow:0 0 26px rgba(64,255,70,.12);color:#f8fbff;">
+                      min-height:235px;box-shadow:0 0 26px rgba(64,255,70,.12);color:#f8fbff;">
             <div style="font-size:18px;color:#c4d1dc;font-weight:900;letter-spacing:.3px;">
               {t['result_title']}
             </div>
@@ -269,7 +269,7 @@ with right:
         }}
         </script>
         """,
-        height=315,
+        height=330,
     )
 
 m1, m2, m3, m4 = st.columns(4)
