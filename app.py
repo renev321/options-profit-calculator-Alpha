@@ -120,7 +120,7 @@ st.markdown(
         }
 
         .block-container {
-            padding-top: 2.1rem !important;
+            padding-top: .65rem !important;
             padding-bottom: 1rem !important;
             max-width: 1120px !important;
         }
@@ -133,11 +133,11 @@ st.markdown(
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: .15rem;
+            margin-bottom: .05rem;
         }
 
         .wlf-logo {
-            width: 116px;
+            width: 88px;
             height: auto;
             display: block;
             filter: drop-shadow(0 0 14px rgba(120,242,95,.22));
@@ -145,7 +145,7 @@ st.markdown(
 
         .wlf-header {
             text-align: center;
-            padding: .2rem 0 .45rem;
+            padding: .05rem 0 .35rem;
         }
 
         .wlf-title {
@@ -319,7 +319,7 @@ st.markdown(
         div[role="radiogroup"] label p {
             color: #f8fafc !important;
             font-weight: 800 !important;
-            font-size: .96rem !important;
+            font-size: 1.02rem !important;
         }
         div[role="radiogroup"] input:checked + div p,
         div[role="radiogroup"] label:has(input:checked) p {
@@ -339,7 +339,24 @@ st.markdown(
             color: rgba(226,232,240,.90) !important;
             font-weight: 700 !important;
         }
-        .st-emotion-cache-1gwvy71, .st-emotion-cache-16txtl3 { color: #f8fafc !important; }
+        .st-emotion-cache-1gwvy71, .st-emotion-cache-16txtl3, div[role="radiogroup"] span { color: #f8fafc !important; }
+
+
+        div[data-testid="stSelectbox"] label {
+            color: rgba(226,232,240,.92) !important;
+            font-weight: 800 !important;
+        }
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+            background: rgba(15,23,42,.74) !important;
+            border: 1px solid rgba(148,163,184,.34) !important;
+            border-radius: 13px !important;
+            color: #f8fafc !important;
+            min-height: 42px !important;
+        }
+        div[data-testid="stSelectbox"] span {
+            color: #f8fafc !important;
+            font-weight: 800 !important;
+        }
 
         @media (max-width: 760px) {
             .metric-row { grid-template-columns: 1fr 1fr; }
@@ -357,14 +374,12 @@ if "broker" not in st.session_state:
 if "language" not in st.session_state:
     st.session_state.language = "ES"
 
-lang_col1, lang_col2, lang_col3 = st.columns([1, 1.2, 1])
-with lang_col3:
-    language_display = st.radio(
-        "🌐 Language / Idioma",
+top_left, top_right = st.columns([3, 1])
+with top_right:
+    language_display = st.selectbox(
+        "Idioma / Language",
         ["Español", "English"],
         index=0 if st.session_state.language == "ES" else 1,
-        horizontal=True,
-        label_visibility="collapsed",
     )
 st.session_state.language = "ES" if language_display == "Español" else "EN"
 t = TXT[st.session_state.language]
@@ -389,8 +404,6 @@ st.markdown(
 left, right = st.columns([1.45, 1], gap="large")
 
 with left:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-
     broker_options = list(BROKERS.keys())
     broker = st.radio(
         t["broker"],
@@ -447,7 +460,6 @@ with left:
     with t2:
         round_limit = st.toggle(t["round_tick"], value=True, help=t["round_tick_help"])
 
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Calculations
 base_limit = entry_premium * (1 + target_percent / 100)
