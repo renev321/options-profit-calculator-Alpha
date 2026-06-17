@@ -1,446 +1,172 @@
-from __future__ import annotations
-
-from pathlib import Path
 import base64
-import math
-
+from pathlib import Path
 import streamlit as st
+import streamlit.components.v1 as components
 
-APP_DIR = Path(__file__).parent
-ASSETS = APP_DIR / "assets"
-CONTRACT_MULTIPLIER = 100
+VERSION = "v11"
+st.set_page_config(page_title="WLF Options Profit Calculator", page_icon="馃搱", layout="wide")
 
+ASSET_DIR = Path(__file__).parent / "assets"
+
+def img_b64(name: str) -> str:
+    p = ASSET_DIR / name
+    if not p.exists():
+        return ""
+    return base64.b64encode(p.read_bytes()).decode()
+
+LOGOS = {
+    "IBKR": "ibkr.png",
+    "Charles Schwab": "schwab.png",
+    "E*TRADE": "etrade.png",
+    "Custom": "",
+}
 BROKERS = {
-    "IBKR": {"fee_per_side": 0.65, "logo": "ibkr.png"},
-    "Charles Schwab": {"fee_per_side": 0.65, "logo": "schwab.png"},
-    "E*TRADE": {"fee_per_side": 0.65, "logo": "etrade.png"},
-    "Custom": {"fee_per_side": 0.00, "logo": None},
+    "IBKR": 0.65,
+    "Charles Schwab": 0.65,
+    "E*TRADE": 0.65,
+    "Custom": 0.65,
 }
 
-TXT = {
+TEXT = {
     "ES": {
-        "app_title": "Calculadora de Ganancia en Opciones",
-        "subtitle": "Calcula el precio límite para cerrar una operación con ganancia",
-        "lang": "Idioma",
+        "title": "Calculadora de Ganancia en Opciones",
+        "subtitle": "Calcula el precio l铆mite para cerrar una operaci贸n con ganancia 路 <span>SELL TO CLOSE</span>",
         "broker": "Broker",
-        "fee": "Comisión",
-        "fee_help": "Comisión por contrato, por lado. La app usa ida y vuelta: abrir + cerrar.",
-        "custom_fee": "Comisión personalizada / lado ($)",
         "contracts": "Contratos",
-        "entry": "Prima de entrada ($)",
+        "premium": "Prima de entrada ($)",
         "target": "Objetivo (%)",
         "include_fees": "Incluir comisiones",
-        "include_fees_help": "Suma la comisión de abrir + cerrar al precio límite de salida.",
-        "round_tick": "Redondear a $0.01",
-        "round_tick_help": "Redondea hacia arriba al centavo más cercano para que el objetivo cubra el cálculo.",
-        "result_title": "Precio límite SELL TO CLOSE",
-        "result_hint": "Este es el precio de prima que escribes en el broker.",
+        "round": "Redondear a $0.01",
+        "fee": "Comisi贸n",
+        "per_side": "/ lado",
+        "custom_fee": "Comisi贸n por lado ($)",
+        "result_title": "PRECIO L脥MITE SELL TO CLOSE",
+        "result_help": "Este es el precio de prima que escribes en el broker.",
+        "copy_title": "Copiar precio al broker",
+        "copy_button": "馃搵 Copiar precio",
+        "copy_hint": "Si el bot贸n no copia, selecciona el n煤mero y usa Ctrl+C.",
+        "copied": "Copiado",
         "entry_cost": "Costo de entrada",
-        "total_fees": "Comisiones totales",
+        "fees_total": "Comisiones totales",
         "gross": "Objetivo bruto",
         "net": "Objetivo neto",
-        "formula": "Fórmula",
-        "base": "Base = prima × (1 + objetivo / 100)",
-        "fee_adj": "Ajuste comisión = comisión ida y vuelta / 100",
-        "final": "Límite de salida = Base + Ajuste comisión",
-        "calc": "Cálculo actual",
-        "custom": "Personalizado",
-        "side": "lado",
-        "open_close": "abrir + cerrar",
+        "formula": "F贸rmula",
+        "base": "Base = prima 脳 (1 + objetivo / 100)",
+        "fee_adj": "Ajuste comisi贸n = comisi贸n ida y vuelta / 100",
+        "exit": "L铆mite de salida = Base + Ajuste comisi贸n",
+        "calc": "C谩lculo actual",
     },
     "EN": {
-        "app_title": "Options Profit Calculator",
-        "subtitle": "Calculate the limit price to close an options trade in profit",
-        "lang": "Language",
+        "title": "Options Profit Calculator",
+        "subtitle": "Calculate the limit price to close an options trade in profit 路 <span>SELL TO CLOSE</span>",
         "broker": "Broker",
-        "fee": "Fee",
-        "fee_help": "Fee per contract, per side. The app uses round trip: open + close.",
-        "custom_fee": "Custom fee / side ($)",
         "contracts": "Contracts",
-        "entry": "Entry premium ($)",
+        "premium": "Entry premium ($)",
         "target": "Target (%)",
         "include_fees": "Include fees",
-        "include_fees_help": "Adds the open + close fee to the exit limit price.",
-        "round_tick": "Round to $0.01",
-        "round_tick_help": "Rounds up to the nearest cent so the target covers the calculation.",
-        "result_title": "SELL TO CLOSE limit price",
-        "result_hint": "This is the premium price you type into your broker.",
+        "round": "Round to $0.01",
+        "fee": "Fee",
+        "per_side": "/ side",
+        "custom_fee": "Fee per side ($)",
+        "result_title": "SELL TO CLOSE LIMIT PRICE",
+        "result_help": "This is the option premium price you type into your broker.",
+        "copy_title": "Copy price to broker",
+        "copy_button": "馃搵 Copy price",
+        "copy_hint": "If the button does not copy, select the number and press Ctrl+C.",
+        "copied": "Copied",
         "entry_cost": "Entry cost",
-        "total_fees": "Total fees",
+        "fees_total": "Total fees",
         "gross": "Gross target",
         "net": "Net target",
         "formula": "Formula",
-        "base": "Base = premium × (1 + target / 100)",
+        "base": "Base = premium 脳 (1 + target / 100)",
         "fee_adj": "Fee adjustment = round-trip fee / 100",
-        "final": "Exit limit = Base + Fee adjustment",
+        "exit": "Exit limit = Base + Fee adjustment",
         "calc": "Current calculation",
-        "custom": "Custom",
-        "side": "side",
-        "open_close": "open + close",
     },
 }
 
-
-def image_to_base64(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return base64.b64encode(path.read_bytes()).decode("utf-8")
-
-
-def round_to_tick(value: float, tick: float) -> float:
-    if tick <= 0:
-        return value
-    return math.ceil(value / tick) * tick
-
-
-st.set_page_config(
-    page_title="WLF Options Profit Calculator",
-    page_icon="🎯",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
-
 st.markdown(
     """
-    <style>
-        :root {
-            --wlf-green: #78f25f;
-            --wlf-cyan: #22d3ee;
-            --bg-card: rgba(15, 23, 42, .64);
-            --border: rgba(148, 163, 184, .24);
-            --text-soft: rgba(226, 232, 240, .76);
-        }
-
-        .stApp {
-            background:
-                radial-gradient(circle at 50% 0%, rgba(34,197,94,.14), transparent 28%),
-                radial-gradient(circle at 8% 25%, rgba(34,211,238,.08), transparent 26%),
-                linear-gradient(135deg, #020617 0%, #07111f 45%, #020617 100%);
-            color: #e5e7eb;
-        }
-
-        .block-container {
-            padding-top: .65rem !important;
-            padding-bottom: 1rem !important;
-            max-width: 1120px !important;
-        }
-
-        div[data-testid="stVerticalBlock"] { gap: .55rem; }
-        .green { color: var(--wlf-green); }
-        .cyan { color: var(--wlf-cyan); }
-
-        .topbar {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: .05rem;
-        }
-
-        .wlf-logo {
-            width: 88px;
-            height: auto;
-            display: block;
-            filter: drop-shadow(0 0 14px rgba(120,242,95,.22));
-        }
-
-        .wlf-header {
-            text-align: center;
-            padding: .05rem 0 .35rem;
-        }
-
-        .wlf-title {
-            margin: 0;
-            font-size: clamp(2rem, 4vw, 3.15rem);
-            font-weight: 850;
-            letter-spacing: -.045em;
-            color: white;
-        }
-
-        .wlf-subtitle {
-            margin-top: .25rem;
-            color: var(--text-soft);
-            font-size: 1.05rem;
-        }
-
-        .section-card {
-            border: 1px solid var(--border);
-            background: linear-gradient(180deg, rgba(15, 23, 42, .70), rgba(2, 6, 23, .58));
-            border-radius: 22px;
-            padding: .9rem 1rem;
-            box-shadow: 0 12px 40px rgba(0,0,0,.20);
-        }
-
-        .row-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: .8rem;
-            margin-bottom: .45rem;
-        }
-
-        .row-title strong {
-            color: #f8fafc;
-            font-size: 1.05rem;
-        }
-
-        .fee-small {
-            border: 1px solid rgba(120,242,95,.40);
-            background: rgba(120,242,95,.11);
-            border-radius: 999px;
-            padding: .32rem .65rem;
-            color: var(--wlf-green);
-            font-weight: 800;
-            font-size: .86rem;
-            white-space: nowrap;
-        }
-
-        .broker-strip {
-            display: flex;
-            align-items: center;
-            gap: .7rem;
-            margin: .3rem 0 .7rem;
-            color: var(--text-soft);
-        }
-
-        .broker-strip img {
-            width: 34px;
-            height: 34px;
-            object-fit: contain;
-            border-radius: 8px;
-            background: rgba(255,255,255,.96);
-            padding: .18rem;
-        }
-
-        .broker-selected-name {
-            color: #ffffff;
-            font-weight: 850;
-            font-size: 1.08rem;
-        }
-
-        .input-caption {
-            color: var(--text-soft);
-            font-size: .85rem;
-        }
-
-        .result-card {
-            border: 1px solid rgba(120,242,95,.76);
-            background:
-                radial-gradient(circle at 15% 50%, rgba(120,242,95,.20), transparent 30%),
-                linear-gradient(135deg, rgba(6, 78, 59, .42), rgba(2, 6, 23, .72));
-            border-radius: 26px;
-            padding: 1.15rem 1.35rem;
-            box-shadow: 0 0 32px rgba(120,242,95,.15);
-            min-height: 218px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .result-title {
-            color: var(--text-soft);
-            font-size: 1.08rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .02em;
-        }
-
-        .result-number {
-            color: var(--wlf-green);
-            font-size: clamp(3rem, 7vw, 5.2rem);
-            font-weight: 950;
-            letter-spacing: -.05em;
-            line-height: .95;
-            margin-top: .18rem;
-        }
-
-        .result-sub {
-            color: var(--text-soft);
-            margin-top: .45rem;
-            font-size: .95rem;
-        }
-
-        .metric-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: .7rem;
-            margin-top: .7rem;
-        }
-
-        .metric-box {
-            border: 1px solid var(--border);
-            background: rgba(2, 6, 23, .38);
-            border-radius: 16px;
-            padding: .75rem .85rem;
-        }
-
-        .metric-name {
-            color: var(--text-soft);
-            font-size: .83rem;
-            margin-bottom: .25rem;
-        }
-
-        .metric-value {
-            color: white;
-            font-size: 1.22rem;
-            font-weight: 850;
-        }
-
-        .formula-card {
-            border: 1px solid var(--border);
-            background: rgba(2,6,23,.42);
-            border-radius: 18px;
-            padding: .85rem 1rem;
-            color: #dbeafe;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-            font-size: .88rem;
-            line-height: 1.55;
-        }
-
-        .copyright {
-            text-align: center;
-            color: rgba(226,232,240,.58);
-            font-size: .86rem;
-            padding: .5rem 0 0;
-        }
-
-        /* Make radio options look like clear toggle buttons */
-        div[role="radiogroup"] {
-            gap: .35rem !important;
-        }
-        div[role="radiogroup"] label {
-            border: 1px solid rgba(148,163,184,.32) !important;
-            background: rgba(15,23,42,.72) !important;
-            border-radius: 14px !important;
-            padding: .45rem .70rem !important;
-            margin-right: .15rem !important;
-            color: #f8fafc !important;
-            min-height: 42px;
-        }
-        div[role="radiogroup"] label p {
-            color: #f8fafc !important;
-            font-weight: 800 !important;
-            font-size: 1.02rem !important;
-        }
-        div[role="radiogroup"] input:checked + div p,
-        div[role="radiogroup"] label:has(input:checked) p {
-            color: var(--wlf-green) !important;
-        }
-        div[data-testid="stNumberInput"] input {
-            background: rgba(2,6,23,.55);
-            border: 1px solid rgba(148,163,184,.32);
-            color: white;
-            border-radius: 12px;
-            font-weight: 700;
-        }
-        div[data-testid="stNumberInput"] label,
-        div[data-testid="stRadio"] label,
-        div[data-testid="stCheckbox"] label,
-        div[data-testid="stToggle"] label {
-            color: rgba(226,232,240,.90) !important;
-            font-weight: 700 !important;
-        }
-        .st-emotion-cache-1gwvy71, .st-emotion-cache-16txtl3, div[role="radiogroup"] span { color: #f8fafc !important; }
-
-
-        div[data-testid="stSelectbox"] label {
-            color: rgba(226,232,240,.92) !important;
-            font-weight: 800 !important;
-        }
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-            background: rgba(15,23,42,.74) !important;
-            border: 1px solid rgba(148,163,184,.34) !important;
-            border-radius: 13px !important;
-            color: #f8fafc !important;
-            min-height: 42px !important;
-        }
-        div[data-testid="stSelectbox"] span {
-            color: #f8fafc !important;
-            font-weight: 800 !important;
-        }
-
-        @media (max-width: 760px) {
-            .metric-row { grid-template-columns: 1fr 1fr; }
-            .result-card { min-height: 180px; }
-            .wlf-logo { width: 92px; }
-        }
-    </style>
-    """,
+<style>
+[data-testid="stHeader"] {background: rgba(6, 10, 22, 0.86);} 
+.block-container {padding-top: 1.1rem; max-width: 1180px;}
+html, body, [class*="css"] {font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;}
+.stApp {background: radial-gradient(circle at top, #0a2324 0, #071223 34%, #050914 100%); color: #f8fbff;}
+.logo-wrap {text-align:center; margin-top: 0.1rem; margin-bottom: .3rem;}
+.logo-wrap img {height: 38px; object-fit: contain;}
+.main-title {font-size: 3.0rem; font-weight: 900; text-align:center; margin: .15rem 0 .25rem; letter-spacing:-1.5px;}
+.subtitle {text-align:center; color:#d5dfef; font-size: 1.08rem; margin-bottom: 1rem;}
+.subtitle span {color:#74ff66; font-weight:800;}
+.small-select {max-width: 130px; margin-left:auto;}
+.broker-row {display:flex; gap:.7rem; flex-wrap:wrap; margin:.35rem 0 .65rem;}
+.broker-chip {border:1px solid #34415b; border-radius:14px; padding:.55rem .85rem; font-weight:900; color:#ffffff; background:#101827; display:flex; gap:.5rem; align-items:center;}
+.broker-chip.active {border-color:#72ff66; box-shadow:0 0 0 1px #72ff66 inset; color:#72ff66;}
+.broker-detail {display:flex; align-items:center; gap:.75rem; margin:.4rem 0 .8rem;}
+.broker-detail img {width:42px; height:42px; border-radius:8px; object-fit:contain; background:#fff; padding:4px;}
+.broker-detail .name {font-weight:900; font-size:1.15rem;}
+.fee-pill {display:inline-block; padding:.42rem .8rem; border-radius:999px; border:1px solid #55d65c; background:rgba(50,150,70,.16); color:#78ff74; font-weight:900; font-size:.9rem;}
+.result-card {border:1px solid #58e85b; border-radius:26px; padding:1.55rem 1.7rem; background:linear-gradient(135deg, rgba(14,50,50,.78), rgba(7,14,30,.92)); min-height: 220px; box-shadow:0 0 26px rgba(64,255,70,.12);}
+.result-title {font-size:1.12rem; color:#c4d1dc; font-weight:900; letter-spacing:.3px;}
+.big-price {font-size:5.7rem; line-height:1; color:#80ff67; font-weight:950; letter-spacing:-3px; margin:.5rem 0;}
+.result-help {font-size:1.05rem; color:#d9e6ea; max-width: 410px;}
+.copy-card {border:1px solid #3f9cff; border-radius:16px; background:rgba(33,91,150,.11); padding:.85rem 1rem; margin-top:.9rem;}
+.copy-title {font-weight:900; color:#8fd2ff; margin-bottom:.45rem;}
+.metric-card {border:1px solid #29344a; border-radius:16px; padding:1rem 1.1rem; background:rgba(6,10,25,.52); min-height:95px;}
+.metric-label {color:#b7c6d7; font-size:.9rem; margin-bottom:.35rem;}
+.metric-value {font-size:1.45rem; font-weight:950; color:#fff;}
+.formula-card {border:1px solid #26344a; border-radius:18px; padding:1.05rem 1.2rem; background:#070b19; margin-top:.4rem;}
+.formula-card pre {white-space:pre-wrap; color:#f5f7ff; font-size:.92rem; line-height:1.8; margin:0;}
+.footer {text-align:center; color:#9badc3; margin:1.1rem 0 .2rem; font-size:.85rem;}
+button[kind="secondary"] {font-weight:900 !important;}
+.stNumberInput label, .stSelectbox label {font-weight:800 !important; color:#dfe8f7 !important;}
+</style>
+""",
     unsafe_allow_html=True,
 )
 
-# Defaults
+# State defaults
 if "broker" not in st.session_state:
     st.session_state.broker = "IBKR"
-if "language" not in st.session_state:
-    st.session_state.language = "ES"
+if "lang" not in st.session_state:
+    st.session_state.lang = "ES"
 
-top_left, top_right = st.columns([3, 1])
-with top_right:
-    language_display = st.selectbox(
-        "Idioma / Language",
-        ["Español", "English"],
-        index=0 if st.session_state.language == "ES" else 1,
-    )
-st.session_state.language = "ES" if language_display == "Español" else "EN"
-t = TXT[st.session_state.language]
+# Compact language selector top-right
+_, lang_col = st.columns([8, 1.4])
+with lang_col:
+    lang_label = st.selectbox("", ["ES", "EN"], index=0 if st.session_state.lang == "ES" else 1, key="lang_select", label_visibility="collapsed")
+st.session_state.lang = lang_label
+t = TEXT[st.session_state.lang]
 
-wlf_logo_b64 = image_to_base64(ASSETS / "wlf_trading_cropped.png") or image_to_base64(ASSETS / "wlf_trading.png")
-if wlf_logo_b64:
-    logo_html = f'<img class="wlf-logo" src="data:image/png;base64,{wlf_logo_b64}" alt="WLF Trading logo" />'
-else:
-    logo_html = '<div class="wlf-title green">WLF</div>'
+logo = img_b64("wlf_trading_cropped.png") or img_b64("wlf_trading.png")
+if logo:
+    st.markdown(f'<div class="logo-wrap"><img src="data:image/png;base64,{logo}" /></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="main-title">{t["title"]}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="subtitle">{t["subtitle"]}</div>', unsafe_allow_html=True)
 
-st.markdown(
-    f"""
-    <div class="topbar">{logo_html}</div>
-    <div class="wlf-header">
-        <h1 class="wlf-title">{t['app_title']}</h1>
-        <div class="wlf-subtitle">{t['subtitle']} · <span class="green">SELL TO CLOSE</span></div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-left, right = st.columns([1.45, 1], gap="large")
+left, right = st.columns([1.38, 1.0], gap="large")
 
 with left:
-    broker_options = list(BROKERS.keys())
-    broker = st.radio(
-        t["broker"],
-        broker_options,
-        index=broker_options.index(st.session_state.broker),
-        horizontal=True,
-        label_visibility="visible",
-    )
-    st.session_state.broker = broker
-    broker_info = BROKERS[broker]
+    st.markdown(f"**{t['broker']}**")
+    broker_cols = st.columns(4)
+    for i, b in enumerate(LOGOS.keys()):
+        with broker_cols[i]:
+            active = st.session_state.broker == b
+            label = ("鈼?" if active else "鈼?") + b
+            if st.button(label, key=f"broker_{b}", use_container_width=True):
+                st.session_state.broker = b
+                st.rerun()
 
-    if broker == "Custom":
-        fee_per_side = st.number_input(
-            t["custom_fee"],
-            min_value=0.0,
-            value=0.65,
-            step=0.01,
-            format="%.2f",
-            help=t["fee_help"],
-        )
-    else:
-        fee_per_side = broker_info["fee_per_side"]
-
-    logo_name = broker_info["logo"]
-    logo_b64 = image_to_base64(ASSETS / logo_name) if logo_name else ""
-    logo_html = (
-        f'<img src="data:image/png;base64,{logo_b64}" alt="{broker} logo" />'
-        if logo_b64
-        else '<span style="font-size:1.6rem">⚙️</span>'
-    )
-
+    broker = st.session_state.broker
+    broker_logo = img_b64(LOGOS.get(broker, "")) if LOGOS.get(broker) else ""
+    img_html = f'<img src="data:image/png;base64,{broker_logo}" />' if broker_logo else '<div style="width:42px;height:42px;border-radius:8px;border:1px solid #445;display:flex;align-items:center;justify-content:center;color:#fff;">馃懁</div>'
+    fee_default = BROKERS.get(broker, 0.65)
     st.markdown(
         f"""
-        <div class="broker-strip">
-            {logo_html}
-            <div class="broker-selected-name">{broker if broker != 'Custom' else t['custom']}</div>
-            <div class="fee-small">{t['fee']}: ${fee_per_side:.2f} / {t['side']}</div>
+        <div class="broker-detail">
+            {img_html}
+            <div class="name">{broker}</div>
+            <div class="fee-pill">{t['fee']}: ${fee_default:.2f} {t['per_side']}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -448,80 +174,114 @@ with left:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        contracts = st.number_input(t["contracts"], min_value=1, max_value=999, value=1, step=1)
+        contracts = st.number_input(t["contracts"], min_value=1, max_value=200, value=1, step=1)
     with c2:
-        entry_premium = st.number_input(t["entry"], min_value=0.01, value=2.50, step=0.01, format="%.2f")
+        premium = st.number_input(t["premium"], min_value=0.01, max_value=999.99, value=2.50, step=0.01, format="%.2f")
     with c3:
-        target_percent = st.number_input(t["target"], min_value=0.0, max_value=10000.0, value=35.0, step=1.0, format="%.2f")
+        target_pct = st.number_input(t["target"], min_value=0.0, max_value=1000.0, value=35.0, step=1.0, format="%.2f")
 
-    t1, t2 = st.columns(2)
-    with t1:
-        include_fees = st.toggle(t["include_fees"], value=True, help=t["include_fees_help"])
-    with t2:
-        round_limit = st.toggle(t["round_tick"], value=True, help=t["round_tick_help"])
+    f1, f2, f3 = st.columns([1, 1, 1])
+    with f1:
+        include_fees = st.toggle(t["include_fees"], value=True)
+    with f2:
+        round_tick = st.toggle(t["round"], value=True)
+    with f3:
+        if broker == "Custom":
+            fee_per_side = st.number_input(t["custom_fee"], min_value=0.0, max_value=99.0, value=0.65, step=0.01, format="%.2f")
+        else:
+            fee_per_side = fee_default
 
+base_limit = premium * (1 + target_pct / 100)
+round_trip_fee_per_contract = fee_per_side * 2 if include_fees else 0.0
+fee_adjustment = round_trip_fee_per_contract / 100
+limit_price_raw = base_limit + fee_adjustment
+limit_price = round(limit_price_raw + 1e-9, 2) if round_tick else limit_price_raw
+copy_value = f"{limit_price:.2f}"
 
-# Calculations
-base_limit = entry_premium * (1 + target_percent / 100)
-round_trip_fee_per_contract = fee_per_side * 2
-fee_adjustment = (round_trip_fee_per_contract / CONTRACT_MULTIPLIER) if include_fees else 0.0
-raw_limit = base_limit + fee_adjustment
-sell_limit = round_to_tick(raw_limit, 0.01) if round_limit else raw_limit
-
-entry_cost = entry_premium * CONTRACT_MULTIPLIER * contracts
-sell_value = sell_limit * CONTRACT_MULTIPLIER * contracts
-total_fees = round_trip_fee_per_contract * contracts if include_fees else 0.0
-gross_profit = sell_value - entry_cost
-net_profit = gross_profit - total_fees
-net_profit_pct = (net_profit / entry_cost) * 100 if entry_cost else 0.0
-gross_profit_pct = (gross_profit / entry_cost) * 100 if entry_cost else 0.0
+entry_cost = premium * contracts * 100
+total_fees = round_trip_fee_per_contract * contracts
+gross_target = (base_limit - premium) * contracts * 100
+net_target = (limit_price * contracts * 100) - entry_cost - total_fees
+net_pct = (net_target / entry_cost * 100) if entry_cost else 0
+gross_pct = (gross_target / entry_cost * 100) if entry_cost else 0
 
 with right:
-    st.markdown(
+    # One compact custom result card. The copy control lives inside the card, not below it.
+    components.html(
         f"""
-        <div class="result-card">
-            <div class="result-title">{t['result_title']}</div>
-            <div class="result-number">${sell_limit:.2f}</div>
-            <div class="result-sub">{t['result_hint']}</div>
+        <div style="font-family:Inter,Arial,sans-serif;box-sizing:border-box;">
+          <div style="border:1px solid #58e85b;border-radius:26px;padding:24px 28px;
+                      background:linear-gradient(135deg, rgba(14,50,50,.78), rgba(7,14,30,.94));
+                      min-height:220px;box-shadow:0 0 26px rgba(64,255,70,.12);color:#f8fbff;">
+            <div style="font-size:18px;color:#c4d1dc;font-weight:900;letter-spacing:.3px;">
+              {t['result_title']}
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 10px;">
+              <div id="priceText" style="font-size:78px;line-height:1;color:#80ff67;font-weight:950;letter-spacing:-3px;">
+                ${copy_value}
+              </div>
+              <button onclick="copyPrice()" title="{t['copy_button']}"
+                style="cursor:pointer;border:1px solid #63ff62;background:rgba(33,95,42,.55);
+                       color:#7fff6c;border-radius:14px;padding:10px 14px;font-size:17px;font-weight:900;
+                       box-shadow:0 0 12px rgba(99,255,98,.18);">
+                馃搵 {t['copy_button'].replace('馃搵 ', '')}
+              </button>
+            </div>
+            <div style="font-size:17px;color:#d9e6ea;max-width:420px;line-height:1.55;">
+              {t['result_help']}
+            </div>
+            <div id="copyMsg" style="margin-top:8px;color:#7fff6c;font-weight:900;font-size:14px;min-height:18px;"></div>
+          </div>
         </div>
+        <script>
+        function copyPrice() {{
+          const val = "{copy_value}";
+          const msg = document.getElementById('copyMsg');
+          if (navigator.clipboard && window.isSecureContext) {{
+            navigator.clipboard.writeText(val).then(function() {{
+              msg.innerText = '鉁?{t['copied']}: ' + val;
+            }}).catch(function() {{
+              fallbackCopy(val, msg);
+            }});
+          }} else {{
+            fallbackCopy(val, msg);
+          }}
+        }}
+        function fallbackCopy(val, msg) {{
+          const temp = document.createElement('input');
+          temp.value = val;
+          document.body.appendChild(temp);
+          temp.focus();
+          temp.select();
+          try {{
+            document.execCommand('copy');
+            msg.innerText = '鉁?{t['copied']}: ' + val;
+          }} catch(e) {{
+            msg.innerText = 'Selecciona el precio y usa Ctrl+C';
+          }}
+          document.body.removeChild(temp);
+        }}
+        </script>
         """,
-        unsafe_allow_html=True,
+        height=255,
     )
 
-st.markdown(
-    f"""
-    <div class="metric-row">
-        <div class="metric-box">
-            <div class="metric-name">{t['entry_cost']}</div>
-            <div class="metric-value">${entry_cost:,.2f}</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-name">{t['total_fees']}</div>
-            <div class="metric-value">${total_fees:,.2f}</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-name">{t['gross']}</div>
-            <div class="metric-value">${gross_profit:,.2f} <span class="green">({gross_profit_pct:.2f}%)</span></div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-name">{t['net']}</div>
-            <div class="metric-value">${net_profit:,.2f} <span class="green">({net_profit_pct:.2f}%)</span></div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+m1, m2, m3, m4 = st.columns(4)
+metrics = [
+    (t["entry_cost"], f"${entry_cost:,.2f}"),
+    (t["fees_total"], f"${total_fees:,.2f}"),
+    (t["gross"], f"${gross_target:,.2f} ({gross_pct:.2f}%)"),
+    (t["net"], f"${net_target:,.2f} ({net_pct:.2f}%)"),
+]
+for col, (label, val) in zip([m1, m2, m3, m4], metrics):
+    with col:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">{label}</div><div class="metric-value">{val}</div></div>', unsafe_allow_html=True)
 
-st.markdown(
-    f"""
-    <div class="formula-card">
-        <b class="green">{t['formula']}</b><br>
-        {t['base']}<br>
-        {t['fee_adj']} <span style="color:rgba(226,232,240,.62)">({t['open_close']})</span><br>
-        {t['final']}<br><br>
-        {t['calc']}: {entry_premium:.2f} × (1 + {target_percent:.2f}/100) + {fee_adjustment:.4f} = {raw_limit:.4f}
-    </div>
-    <div class="copyright">© WLF Trading</div>
-    """,
-    unsafe_allow_html=True,
+formula_text = (
+    f"{t['base']}\n"
+    f"{t['fee_adj']}\n"
+    f"{t['exit']}\n\n"
+    f"{t['calc']}: {premium:.2f} 脳 (1 + {target_pct:.2f}/100) + {fee_adjustment:.4f} = {limit_price_raw:.4f}"
 )
+st.markdown(f'<div class="formula-card"><pre><b style="color:#6fff68">{t["formula"]}</b>\n{formula_text}</pre></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="footer">漏 WLF Trading 路 {VERSION}</div>', unsafe_allow_html=True)
